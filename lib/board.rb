@@ -2,16 +2,94 @@
 
 require_relative '../lib/pieces'
 
+# Determine update moves on the board
+module Moves
+  def update_moves
+    @board.each do |row|
+      row.each do |piece|
+        next if piece.nil?
+
+        piece[:moves] = calculate_moves(piece)
+      end
+    end
+  end
+
+  def calculate_moves(piece)
+    case piece[:label]
+    when '♖', '♜'
+      #puts 'rook'
+    when '♘', '♞'
+      #puts 'knight'
+    when '♗', '♝'
+      #puts 'bishop'
+    when '♕', '♛'
+      #puts 'queen'
+    when '♔', '♚'
+      #puts 'king'
+    else
+      pawn_moves(piece)
+    end
+  end
+end
+
+# Calculate possible moves for pawns
+module PawnMoves
+  def pawn_moves(piece, moves = [])
+    moves.push(directly_forward(piece, 1))
+    moves.push(directly_forward(piece, 2)) if first_move?(piece) && !moves[0].nil?
+    diagonal_attack(piece).each { |move| moves.push(move) unless move.nil? }
+    moves
+  end
+
+  def directly_forward(piece, dist)
+    row = piece[:location].first
+    col = piece[:location].last
+    goal = piece[:label] == '♙' ? [(row + dist), col] : [(row - dist), col]
+    return unless @board[goal[0]][goal[1]].nil?
+
+    goal
+  end
+
+  def first_move?(piece, label = piece[:label], row = piece[:location].first)
+    true if (label == '♙' && row == 1) || (label == '♟' && row == 6)
+  end
+
+  def diagonal_attack(piece)
+    case piece[:label]
+    when '♙'
+      diagonal_moves(piece, 1)
+    when '♟'
+      diagonal_moves(piece, -1)
+    end
+  end
+
+  def diagonal_moves(piece, row_dir, valid = [])
+    row = piece[:location].first
+    col = piece[:location].last
+    moves = [[(row + row_dir), (col - 1)], [(row + row_dir), (col + 1)]]
+    moves.each do |move|
+      next if (move[0]).negative? || (move[1]).negative?
+
+      target = @board[move[0]][move[1]]
+      valid.push(move) if !target.nil? && target[:owner] != piece[:owner]
+    end
+    valid
+  end
+end
+
 # Controls the chess board
 class Board
+  include PawnMoves
+  include Moves
+
   TOP_ROW = '╭┈╔═╤═╤═╤═╤═╤═╤═╤═╗'
   INTER_ROW = '┊ ╟─┼─┼─┼─┼─┼─┼─┼─╢'
   END_ROWS = "┊ ╚═╧═╧═╧═╧═╧═╧═╧═╝\n╰┈┈a┈b┈c┈d┈e┈f┈g┈h╯"
 
   def initialize(player1, player2)
-    @pieces = CHESS_PIECES.new(player1, player2)
-    p @board = create_board
-    # @pieces.update_moves
+    @pieces = ChessPieces.new(player1, player2)
+    @board = create_board
+    update_moves
   end
 
   def create_board(board = [])
