@@ -1,22 +1,17 @@
 # frozen_string_literal: true
 
-require_relative '../lib/board'
-require_relative '../lib/pieces'
-
 # Play a game of chess
 class Game
-  # attr_accessor :board
-
   def initialize
     @check = false
-    @winner = false
+    @checkmate = false
     play
   end
 
   def play
-    introdutcion
+    introduction
     setup
-    2.times { play_round }
+    5.times { play_round }
   end
 
   def setup
@@ -32,7 +27,7 @@ class Game
     show_board
     ask_move
     @board.move_piece(@piece, @move_to)
-    @turn = @turn == @player1 ? @player2 : @player1 unless @winner
+    @turn = @turn == @player1 ? @player2 : @player1 unless @checkmate
     @board.update_moves
   end
 
@@ -42,7 +37,7 @@ class Game
   end
 
   def ask_move
-    puts '1) Enter the column-row coordinates of the piece you with to move:'
+    puts '1) Enter the column-row coordinates of the piece you wish to move:'
     @piece = player_move('start')
     puts '2) Enter the column-row coordinates to move the piece to:'
     @move_to = player_move('end')
@@ -69,7 +64,8 @@ class Game
   def verify_start_coords
     return nil unless valid_coords
 
-    search_board
+    piece = search_board
+    can_move?(piece) unless piece.nil?
   end
 
   def search_board
@@ -77,6 +73,12 @@ class Game
     return piece if !piece.nil? && piece[:owner] == @turn
 
     puts "\e[31mYou do not have a chess piece at #{@current_move}.\e[0m"
+  end
+
+  def can_move?(piece)
+    return piece unless piece[:moves].nil?
+
+    puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
   end
 
   def verify_end_coords
@@ -102,7 +104,7 @@ class Game
 
   private
 
-  def introdutcion
+  def introduction
     puts <<~HEREDOC
 
       \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
