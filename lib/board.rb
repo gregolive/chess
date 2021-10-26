@@ -2,8 +2,9 @@
 
 # Determine update moves on the board
 module Moves
-  KING_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
+  KING_QUEEN_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
   KNIGHT_MOVES = [[1, -2], [2, -1], [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2]].freeze
+  BISHOP_MOVES = [[1, 1], [-1, 1], [1, -1], [-1, -1]].freeze
   ROOK_MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1]].freeze
 
   def update_moves
@@ -11,8 +12,7 @@ module Moves
       row.each do |piece|
         next if piece.nil?
 
-        piece[:moves] = calculate_moves(piece).compact unless calculate_moves(piece).nil?
-        # DELETE UNLESS LATER
+        piece[:moves] = calculate_moves(piece).compact
       end
     end
   end
@@ -20,15 +20,15 @@ module Moves
   def calculate_moves(piece)
     case piece[:label]
     when '♖', '♜'
-      rook_moves(piece, ROOK_MOVES)
+      queen_rook_bishop_moves(piece, ROOK_MOVES)
     when '♘', '♞'
       king_knight_moves(piece, KNIGHT_MOVES)
     when '♗', '♝'
-      # puts 'bishop'
+      queen_rook_bishop_moves(piece, BISHOP_MOVES)
     when '♕', '♛'
-      # puts 'queen'
+      queen_rook_bishop_moves(piece, KING_QUEEN_MOVES)
     when '♔', '♚'
-      king_knight_moves(piece, KING_MOVES)
+      king_knight_moves(piece, KING_QUEEN_MOVES)
     else
       pawn_moves(piece)
     end
@@ -45,8 +45,8 @@ module Moves
 end
 
 # Calculate possible moves for rooks
-module RookMoves
-  def rook_moves(piece, moves, valid = [])
+module QueenRookBishopMoves
+  def queen_rook_bishop_moves(piece, moves, valid = [])
     moves.each do |move|
       valid_moves = addup_moves(piece, move, piece[:location])
       valid_moves&.each { |valid_move| valid.push(valid_move) }
@@ -134,7 +134,7 @@ end
 # Controls the chess board
 class Board
   include KingKnightMoves
-  include RookMoves
+  include QueenRookBishopMoves
   include PawnMoves
   include Moves
 

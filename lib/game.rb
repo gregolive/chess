@@ -11,7 +11,7 @@ class Game
   def play
     introduction
     setup
-    5.times { play_round }
+    6.times { play_round }
   end
 
   def setup
@@ -76,7 +76,9 @@ class Game
   end
 
   def can_move?(piece)
-    return piece unless piece[:moves].nil?
+    return piece unless piece[:moves].empty?
+
+    # DELETE NIL? LATER
 
     puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
   end
