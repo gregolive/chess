@@ -4,13 +4,15 @@
 module Moves
   KING_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
   KNIGHT_MOVES = [[1, -2], [2, -1], [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2]].freeze
+  ROOK_MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1]].freeze
 
   def update_moves
     @board.each do |row|
       row.each do |piece|
         next if piece.nil?
 
-        piece[:moves] = calculate_moves(piece)
+        piece[:moves] = calculate_moves(piece).compact unless calculate_moves(piece).nil?
+        # DELETE UNLESS LATER
       end
     end
   end
@@ -18,7 +20,7 @@ module Moves
   def calculate_moves(piece)
     case piece[:label]
     when '♖', '♜'
-      # puts 'rook'
+      rook_moves(piece, ROOK_MOVES)
     when '♘', '♞'
       king_knight_moves(piece, KNIGHT_MOVES)
     when '♗', '♝'
@@ -39,6 +41,50 @@ module Moves
 
   def possible(move)
     move[0].between?(0, 7) && move[1].between?(0, 7) ? true : false
+  end
+end
+
+# Calculate possible moves for rooks
+module RookMoves
+  def rook_moves(piece, moves, valid = [])
+    moves.each do |move|
+      valid_moves = addup_moves(piece, move, piece[:location])
+      valid_moves&.each { |valid_move| valid.push(valid_move) }
+    end
+    valid
+  end
+
+  def matching_coords(location, move)
+    coords = [(location[0] + move[0]), (location[1] + move[1])]
+    possible(coords) ? coords : nil
+  end
+
+  def addup_moves(piece, move, location = piece[:location], output = [])
+    return unless possible(location)
+
+    target_coords = matching_coords(location, move)
+    return if target_coords.nil?
+
+    target = @board[target_coords[0]][target_coords[1]]
+    return if !target.nil? && target[:owner] == piece[:owner]
+
+    output.push(target_coords)
+    addup_moves(piece, move, target_coords, output) if target.nil?
+    output
+  end
+end
+
+# Calculate possible moves for kings and knights
+module KingKnightMoves
+  def king_knight_moves(piece, moves, valid = [])
+    moves = generate_moves(piece[:location], moves)
+    moves.each { |move| valid.push(valid_move(piece, move)) }
+    valid
+  end
+
+  def valid_move(piece, move)
+    target = @board[move[0]][move[1]]
+    return move if target.nil? || target[:owner] != piece[:owner]
   end
 end
 
@@ -74,8 +120,6 @@ module PawnMoves
   end
 
   def diagonal_moves(piece, row_dir, valid = [])
-    row = piece[:location].first
-    col = piece[:location].last
     moves = generate_moves(piece[:location], [[row_dir, -1], [row_dir, 1]])
     moves.each { |move| valid.push(diagonal_valid(piece, move)) }
     valid
@@ -87,25 +131,10 @@ module PawnMoves
   end
 end
 
-# Calculate possible moves for pawns
-module KingKnightMoves
-  def king_knight_moves(piece, moves, valid = [])
-    moves = generate_moves(piece[:location], moves)
-    moves.each { |move| valid.push(valid_move(piece, move)) }
-    valid
-  end
-
-  def valid_move(piece, move)
-    return if (move[0]).negative? || (move[0]) > 7 || (move[1]).negative? || (move[1]) > 7
-
-    target = @board[move[0]][move[1]]
-    return move if target.nil? || target[:owner] != piece[:owner]
-  end
-end
-
 # Controls the chess board
 class Board
   include KingKnightMoves
+  include RookMoves
   include PawnMoves
   include Moves
 
