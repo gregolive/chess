@@ -2,6 +2,9 @@
 
 # Determine update moves on the board
 module Moves
+  KING_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
+  KNIGHT_MOVES = [[1, -2], [2, -1], [2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2]].freeze
+
   def update_moves
     @board.each do |row|
       row.each do |piece|
@@ -17,13 +20,13 @@ module Moves
     when '♖', '♜'
       # puts 'rook'
     when '♘', '♞'
-      # puts 'knight'
+      king_knight_moves(piece, KNIGHT_MOVES)
     when '♗', '♝'
       # puts 'bishop'
     when '♕', '♛'
       # puts 'queen'
     when '♔', '♚'
-      king_moves(piece)
+      king_knight_moves(piece, KING_MOVES)
     else
       pawn_moves(piece)
     end
@@ -85,16 +88,14 @@ module PawnMoves
 end
 
 # Calculate possible moves for pawns
-module KingMoves
-  KING_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
-
-  def king_moves(piece, valid = [])
-    moves = generate_moves(piece[:location], KING_MOVES)
-    moves.each { |move| valid.push(king_valid(piece, move)) }
+module KingKnightMoves
+  def king_knight_moves(piece, moves, valid = [])
+    moves = generate_moves(piece[:location], moves)
+    moves.each { |move| valid.push(valid_move(piece, move)) }
     valid
   end
 
-  def king_valid(piece, move)
+  def valid_move(piece, move)
     return if (move[0]).negative? || (move[0]) > 7 || (move[1]).negative? || (move[1]) > 7
 
     target = @board[move[0]][move[1]]
@@ -104,7 +105,7 @@ end
 
 # Controls the chess board
 class Board
-  include KingMoves
+  include KingKnightMoves
   include PawnMoves
   include Moves
 
