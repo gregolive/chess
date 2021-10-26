@@ -33,6 +33,7 @@ class Game
     ask_move
     @board.move_piece(@piece, @move_to)
     @turn = @turn == @player1 ? @player2 : @player1 unless @winner
+    @board.update_moves
   end
 
   def show_board
@@ -75,7 +76,7 @@ class Game
     piece = @board.find_piece(convert_coords(@current_move))
     return piece if !piece.nil? && piece[:owner] == @turn
 
-    puts "\e[31mYou do not have a piece at #{@current_move}.\e[0m"
+    puts "\e[31mYou do not have a chess piece at #{@current_move}.\e[0m"
   end
 
   def verify_end_coords
@@ -85,9 +86,10 @@ class Game
   end
 
   def can_move_to
-    return convert_coords(@current_move) if @current_move
+    move_coords = convert_coords(@current_move)
+    return move_coords if @piece[:moves].include?(move_coords)
 
-    # puts "\e[31mYou cannot move the piece to #{@current_move}.\e[0m"
+    puts "\e[31mYou cannot move #{@piece[:label]} to #{@current_move}.\e[0m"
   end
 
   def convert_coords(player_input)
