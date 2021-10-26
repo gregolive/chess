@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../lib/pieces'
-
 # Determine update moves on the board
 module Moves
   def update_moves
@@ -17,18 +15,27 @@ module Moves
   def calculate_moves(piece)
     case piece[:label]
     when '♖', '♜'
-      #puts 'rook'
+      # puts 'rook'
     when '♘', '♞'
-      #puts 'knight'
+      # puts 'knight'
     when '♗', '♝'
-      #puts 'bishop'
+      # puts 'bishop'
     when '♕', '♛'
-      #puts 'queen'
+      # puts 'queen'
     when '♔', '♚'
-      #puts 'king'
+      king_moves(piece)
     else
       pawn_moves(piece)
     end
+  end
+
+  def generate_moves(location, moves)
+    moves.map { |dir| [(location[0] + dir[0]), (location[1] + dir[1])] }
+         .keep_if { |move| possible(move) }
+  end
+
+  def possible(move)
+    move[0].between?(0, 7) && move[1].between?(0, 7) ? true : false
   end
 end
 
@@ -66,19 +73,38 @@ module PawnMoves
   def diagonal_moves(piece, row_dir, valid = [])
     row = piece[:location].first
     col = piece[:location].last
-    moves = [[(row + row_dir), (col - 1)], [(row + row_dir), (col + 1)]]
-    moves.each do |move|
-      next if (move[0]).negative? || (move[1]).negative?
-
-      target = @board[move[0]][move[1]]
-      valid.push(move) if !target.nil? && target[:owner] != piece[:owner]
-    end
+    moves = generate_moves(piece[:location], [[row_dir, -1], [row_dir, 1]])
+    moves.each { |move| valid.push(diagonal_valid(piece, move)) }
     valid
+  end
+
+  def diagonal_valid(piece, move)
+    target = @board[move[0]][move[1]]
+    return move if !target.nil? && target[:owner] != piece[:owner]
+  end
+end
+
+# Calculate possible moves for pawns
+module KingMoves
+  KING_MOVES = [[1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]].freeze
+
+  def king_moves(piece, valid = [])
+    moves = generate_moves(piece[:location], KING_MOVES)
+    moves.each { |move| valid.push(king_valid(piece, move)) }
+    valid
+  end
+
+  def king_valid(piece, move)
+    return if (move[0]).negative? || (move[0]) > 7 || (move[1]).negative? || (move[1]) > 7
+
+    target = @board[move[0]][move[1]]
+    return move if target.nil? || target[:owner] != piece[:owner]
   end
 end
 
 # Controls the chess board
 class Board
+  include KingMoves
   include PawnMoves
   include Moves
 
