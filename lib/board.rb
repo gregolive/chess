@@ -1,20 +1,20 @@
 # frozen_string_literal: true
 
-require_relative '../lib/player'
+require_relative '../lib/pieces'
 
 # Controls the chess board
 class Board
-  TOP_ROW = '╭┈╔═╤═╤═╤═╤═╤═╤═╤═╗'.freeze
-  INTER_ROW = '┊ ╟─┼─┼─┼─┼─┼─┼─┼─╢'.freeze
-  END_ROWS = "┊ ╚═╧═╧═╧═╧═╧═╧═╧═╝\n╰┈┈a┈b┈c┈d┈e┈f┈g┈h╯".freeze
+  TOP_ROW = '╭┈╔═╤═╤═╤═╤═╤═╤═╤═╗'
+  INTER_ROW = '┊ ╟─┼─┼─┼─┼─┼─┼─┼─╢'
+  END_ROWS = "┊ ╚═╧═╧═╧═╧═╧═╧═╧═╝\n╰┈┈a┈b┈c┈d┈e┈f┈g┈h╯"
 
   def initialize(player1, player2)
     @pieces = CHESS_PIECES.new(player1, player2)
     p @board = create_board
-    #@pieces.update_moves
+    # @pieces.update_moves
   end
 
-  def create_board(board = Array.new)
+  def create_board(board = [])
     board.push(@pieces.all[0..7]).push(@pieces.all[8..15])
     4.times { board.push([nil, nil, nil, nil, nil, nil, nil, nil]) }
     board.push(@pieces.all[16..23]).push(@pieces.all[24..31])
@@ -44,7 +44,7 @@ class Board
 
   def add_piece(piece, index)
     if piece.nil?
-      return index < 7 ? ' │' : " ║\n"
+      index < 7 ? ' │' : " ║\n"
     else
       index < 7 ? "#{piece[:label]}│" : "#{piece[:label]}║\n"
     end
@@ -55,7 +55,7 @@ class Board
     @board[start[0]][start[1]] = nil
     @board[finish[0]][finish[1]] = piece
     @board[finish[0]][finish[1]][:location] = finish
-    return @board
+    @board
   end
 
   def find_piece(coords)

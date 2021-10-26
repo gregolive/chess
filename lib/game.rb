@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require_relative '../lib/board'
-require_relative '../lib/player'
+require_relative '../lib/pieces'
 
 # Play a game of chess
 class Game
-  #attr_accessor :board
+  # attr_accessor :board
 
   def initialize
     @check = false
@@ -41,9 +41,9 @@ class Game
   end
 
   def ask_move
-    puts "1) Enter the column-row coordinates of the piece you with to move:"
+    puts '1) Enter the column-row coordinates of the piece you with to move:'
     @piece = player_move('start')
-    puts "2) Enter the column-row coordinates to move the piece to:"
+    puts '2) Enter the column-row coordinates to move the piece to:'
     @move_to = player_move('end')
   end
 
@@ -56,15 +56,17 @@ class Game
   end
 
   def valid_coords
-    alph = ("a".."h").to_a
+    alph = ('a'..'h').to_a
     num = ('1'..'8').to_a
-    return true if @current_move.length == 2 && alph.include?(@current_move.chr) && num.include?(@current_move.reverse.chr)
+    if @current_move.length == 2 && alph.include?(@current_move.chr) && num.include?(@current_move.reverse.chr)
+      return true
+    end
 
     puts "\e[31mPlease enter the proper column-row coordinates. Example: 'g2'.\e[0m"
   end
 
   def verify_start_coords
-    return nil if !valid_coords
+    return nil unless valid_coords
 
     search_board
   end
@@ -77,7 +79,7 @@ class Game
   end
 
   def verify_end_coords
-    return nil if !valid_coords
+    return nil unless valid_coords
 
     can_move_to
   end
@@ -85,11 +87,11 @@ class Game
   def can_move_to
     return convert_coords(@current_move) if @current_move
 
-    #puts "\e[31mYou cannot move the piece to #{@current_move}.\e[0m"
+    # puts "\e[31mYou cannot move the piece to #{@current_move}.\e[0m"
   end
 
   def convert_coords(player_input)
-    alph = ("a".."h").to_a
+    alph = ('a'..'h').to_a
     player_input.chr
     col = alph.find_index(player_input.chr)
     row = (player_input.reverse.chr.to_i - 8).abs
