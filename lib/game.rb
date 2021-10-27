@@ -14,6 +14,19 @@ module Display
 
     HEREDOC
   end
+
+  def display_turn_info
+    @board.display_board
+    puts "\n\e[31mCHECK 😱\e[0m" if @check
+    puts "\n\e[36m#{@turn}'s move.\e[0m\n"
+  end
+
+  def display_winner
+    @board.display_board
+    puts "\n\e[31mCHECKMATE 😵\e[0m"
+    @turn = @turn == @player1 ? @player2 : @player1
+    puts "\n\e[36m#{@turn} is the winner!\e[0m"
+  end
 end
 
 # Check if a player is in check or checkmate
@@ -69,6 +82,7 @@ end
 # Play a game of chess
 class Game
   include CheckCheckmate
+  include Display
 
   def initialize
     @check = false
@@ -94,20 +108,8 @@ class Game
 
   def play_round
     display_turn_info
-    ask_move
-    refresh_board
+    make_move
     prepare_next_turn
-  end
-
-  def display_turn_info
-    @board.display_board
-    puts "\n\e[31mCHECK 😱\e[0m" if @check
-    puts "\n\e[36m#{@turn}'s move.\e[0m\n"
-  end
-
-  def refresh_board
-    @board.move_piece(@piece, @move_to)
-    @board.update_moves
   end
 
   def prepare_next_turn
@@ -116,11 +118,31 @@ class Game
     @checkmate = checkmate? if @check
   end
 
+  def make_move
+    ask_move
+    refresh_board
+    double_check
+  end
+
   def ask_move
     puts '1) Enter the column-row coordinates of the piece you wish to move:'
     @piece = player_move('start')
+    @move_from = @piece[:location]
     puts "2) Enter the coordinates to move #{@piece[:label]} to or 'back' to change piece:"
     @move_to = player_move('end')
+  end
+
+  def refresh_board(move = @move_to)
+    @board.move_piece(@piece, move)
+    @board.update_moves
+  end
+
+  def double_check
+    return unless check?
+
+    puts "\e[31mInvalid move: #{@piece[:label]} to '#{@current_move}'. You'll be in check. Try again.\e[0m"
+    refresh_board(@move_from)
+    make_move
   end
 
   def player_move(type)
@@ -146,7 +168,9 @@ class Game
     return nil unless valid_coords
 
     piece = search_board
-    can_move?(piece) unless piece.nil?
+    return piece unless piece.nil? || piece[:moves].empty?
+
+    puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
   end
 
   def search_board
@@ -156,21 +180,11 @@ class Game
     puts "\e[31mYou do not have a chess piece at #{@current_move}.\e[0m"
   end
 
-  def can_move?(piece)
-    return piece unless piece[:moves].empty?
-
-    puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
-  end
-
   def verify_end_coords
     return nil unless valid_coords
 
-    can_move_to
-  end
-
-  def can_move_to
-    move_coords = convert_coords(@current_move)
-    return move_coords if @piece[:moves].include?(move_coords)
+    end_coords = convert_coords(@current_move)
+    return end_coords if @piece[:moves].include?(end_coords)
 
     puts "\e[31mYou cannot move #{@piece[:label]} to #{@current_move}.\e[0m"
   end
@@ -181,12 +195,5 @@ class Game
     col = alph.find_index(player_input.chr)
     row = (player_input.reverse.chr.to_i - 8).abs
     [row, col]
-  end
-
-  def display_winner
-    @board.display_board
-    puts "\n\e[31mCHECKMATE 😵\e[0m"
-    @turn = @turn == @player1 ? @player2 : @player1
-    puts "\n\e[36m#{@turn} is the winner!\e[0m"
   end
 end
