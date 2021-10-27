@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Prompt the users and display output to the command line
+# Display output to the command line
 module Display
   private
 
@@ -85,23 +85,33 @@ class Game
   include Display
 
   def initialize
-    @check = false
     @checkmate = false
-    play
-  end
-
-  def play
     introduction
-    setup
-    play_round until @checkmate
-    display_winner
+    new_or_load
   end
 
-  def setup
+  def new_or_load
+    puts "Enter '1' to start a new game of chess or '2' to continue a saved game."
+    input = gets.chomp
+    while %w[1 2].include?(input) == false
+      puts error_message[0]
+      input = gets.chomp
+    end
+    input == '1' ? new_game : load_game
+  end
+
+  def new_game
     @player1 = ask_name("\e[36mPlayer 1\e[0m controls the white pieces. Please enter your name:")
     @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
     @turn = @player1
     @board = Board.new(@player1, @player2)
+    @check = false
+    play
+  end
+
+  def play
+    play_round until @checkmate
+    display_winner
   end
 
   def ask_name(message, player2 = nil)
