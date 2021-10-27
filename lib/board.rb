@@ -198,4 +198,23 @@ class Board
     end
     nil
   end
+
+  def find_attackers(_player, attackers = [])
+    @board.flatten.each { |piece| attackers.push(piece) unless piece.nil? || piece[:owner] == @user }
+    attackers
+  end
+
+  def find_king(player, king = nil)
+    @board.flatten.each do |piece|
+      next if piece.nil?
+
+      king = piece if piece[:owner] == player && ['♔', '♚'].include?(piece[:label])
+    end
+    king
+  end
+
+  def find_defenders(player, defenders = [])
+    @board.flatten.each { |piece| defenders.push(piece) unless piece.nil? || piece[:owner] != player }
+    defenders
+  end
 end
