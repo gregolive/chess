@@ -15,7 +15,7 @@ class ChessPieces
     row = pieces == WHITE ? [6, 7] : [0, 1]
     pieces.each_with_index do |piece, index|
       location = index < 8 ? [row[0], index] : [row[1], (index - 8)]
-      info = { label: piece, status: 'alive', owner: name, location: location, moves: nil }
+      info = { label: piece, owner: name, location: location, moves: nil }
       output.push(info)
     end
     output
