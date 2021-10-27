@@ -1,7 +1,75 @@
 # frozen_string_literal: true
 
+# Display output to the command line
+module Display
+  private
+
+  def introduction
+    puts <<~HEREDOC
+
+      \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
+
+      Play classic chess against a friend or a computer.
+      Take your opponent's king before they take yours! 👑
+
+    HEREDOC
+  end
+end
+
+# Check if a player is in check or checkmate
+module CheckCheckmate
+  def check?
+    check = false
+    attackers = @board.find_attackers(@turn)
+    king = @board.find_king(@turn)
+    attackers.each { |attacker| check = true if attacker[:moves].any?(king[:location]) }
+    check
+  end
+
+  def checkmate?
+    attacking = dangerous_attackers
+    protectors = collect_protectors
+    attacking.each { |attacker| @board.move_piece(attacker, attacker[:location]) }
+    @board.update_moves
+    protectors.empty? ? true : false
+  end
+
+  def dangerous_attackers(danger = [])
+    attackers = @board.find_attackers(@turn)
+    king = @board.find_king(@turn)
+    attackers.each do |attacker|
+      attacker[:moves].each { |move| danger.push(attacker) if move == king[:location] }
+    end
+    danger
+  end
+
+  def collect_protectors(protectors = [])
+    defenders = @board.find_defenders(@turn)
+    defenders.each do |defender|
+      next if defender[:moves].empty?
+
+      protectors = defending?(defender, protectors)
+    end
+    protectors.uniq
+  end
+
+  def defending?(defender, protectors)
+    position = defender[:location]
+    defender[:moves].each do |move|
+      @board.move_piece(defender, move)
+      @board.update_moves
+      protectors.push(defender) unless check?
+      @board.move_piece(defender, position)
+      @board.update_moves
+    end
+    protectors
+  end
+end
+
 # Play a game of chess
 class Game
+  include CheckCheckmate
+
   def initialize
     @check = false
     @checkmate = false
@@ -11,7 +79,8 @@ class Game
   def play
     introduction
     setup
-    6.times { play_round }
+    play_round until @checkmate
+    display_winner
   end
 
   def setup
@@ -24,28 +93,40 @@ class Game
   end
 
   def play_round
-    show_board
+    display_turn_info
     ask_move
+    refresh_board
+    prepare_next_turn
+  end
+
+  def display_turn_info
+    @board.display_board
+    puts "\n\e[31mCHECK 😱\e[0m" if @check
+    puts "\n\e[36m#{@turn}'s move.\e[0m\n"
+  end
+
+  def refresh_board
     @board.move_piece(@piece, @move_to)
-    @turn = @turn == @player1 ? @player2 : @player1 unless @checkmate
     @board.update_moves
   end
 
-  def show_board
-    @board.display_board
-    puts "\n\e[36m#{@turn}'s move.\e[0m\n"
+  def prepare_next_turn
+    @turn = @turn == @player1 ? @player2 : @player1
+    @check = check?
+    @checkmate = checkmate? if @check
   end
 
   def ask_move
     puts '1) Enter the column-row coordinates of the piece you wish to move:'
     @piece = player_move('start')
-    puts '2) Enter the column-row coordinates to move the piece to:'
+    puts "2) Enter the coordinates to move #{@piece[:label]} to or 'back' to change piece:"
     @move_to = player_move('end')
   end
 
   def player_move(type)
     loop do
       @current_move = gets.chomp
+      ask_move if @current_move == 'back' && type == 'end'
       verified_move = type == 'start' ? verify_start_coords : verify_end_coords
       return verified_move if verified_move
     end
@@ -78,8 +159,6 @@ class Game
   def can_move?(piece)
     return piece unless piece[:moves].empty?
 
-    # DELETE NIL? LATER
-
     puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
   end
 
@@ -104,16 +183,10 @@ class Game
     [row, col]
   end
 
-  private
-
-  def introduction
-    puts <<~HEREDOC
-
-      \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
-
-      Play classic chess against a friend or a computer.
-      Take your opponent's king before they take yours! 👑
-
-    HEREDOC
+  def display_winner
+    @board.display_board
+    puts "\n\e[31mCHECKMATE 😵\e[0m"
+    @turn = @turn == @player1 ? @player2 : @player1
+    puts "\n\e[36m#{@turn} is the winner!\e[0m"
   end
 end
