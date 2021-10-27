@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Display output to the command line
+# Prompt the users and display output to the command line
 module Display
   private
 
@@ -98,12 +98,32 @@ class Game
   end
 
   def setup
-    puts "\e[36mPlayer 1\e[0m controls the white pieces. Please enter your name:"
-    @player1 = gets.chomp
-    puts "\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:"
-    @player2 = gets.chomp
+    @player1 = ask_name("\e[36mPlayer 1\e[0m controls the white pieces. Please enter your name:")
+    @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
     @turn = @player1
     @board = Board.new(@player1, @player2)
+  end
+
+  def ask_name(message, player2 = nil)
+    puts message
+    loop do
+      input = gets.chomp
+      input = empty?(input)
+      input = same_as_p1?(input) unless player2.nil?
+      return input unless input.nil?
+    end
+  end
+
+  def empty?(input)
+    return input unless input == ''
+
+    puts "\e[31mPlease enter your name.\e[0m"
+  end
+
+  def same_as_p1?(input)
+    return input unless input == @player1
+
+    puts "\e[31mName must be different than player 1.\e[0m"
   end
 
   def play_round
