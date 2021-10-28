@@ -1,34 +1,5 @@
 # frozen_string_literal: true
 
-# Display output to the command line
-module Display
-  private
-
-  def introduction
-    puts <<~HEREDOC
-
-      \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
-
-      Play classic chess against a friend or the computer.
-      Take your opponent's king before they take yours! 👑
-
-    HEREDOC
-  end
-
-  def display_turn_info
-    @board.display_board
-    puts "\n\e[31mCHECK 😱\e[0m" if @check
-    puts "\n\e[36m#{@turn}'s move.\e[0m\n"
-  end
-
-  def display_winner
-    @board.display_board
-    puts "\n\e[31mCHECKMATE 😵\e[0m"
-    @turn = @turn == @player1 ? @player2 : @player1
-    puts "\n\e[36m#{@turn} is the winner!\e[0m"
-  end
-end
-
 # Check if a player is in check or checkmate
 module CheckCheckmate
   def check?
@@ -79,16 +50,19 @@ module CheckCheckmate
   end
 end
 
-# Play a game of chess
-class Game
-  include CheckCheckmate
-  include Database
-  include Display
+# Display setup prompts
+module SetupDisplay
+  private
 
-  def initialize
-    @checkmate = false
-    introduction
-    new_or_load
+  def introduction
+    puts <<~HEREDOC
+
+      \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
+
+      Play classic chess against a friend or the computer.
+      Take your opponent's king before they take yours! 👑
+
+    HEREDOC
   end
 
   def new_or_load
@@ -111,32 +85,18 @@ class Game
   end
 
   def player_white
-    @player1 = ask_name("You control the white pieces. Please enter your name:")
-    @player2 = 'COMPUTER'
+    @player1 = ask_name('You control the white pieces. Please enter your name:')
+    @player2 = ''
   end
 
   def player_black
-    @player2 = ask_name("You control the black pieces. Please enter your name:")
-    @player1 = 'COMPUTER'
+    @player2 = ask_name('You control the black pieces. Please enter your name:')
+    @player1 = ''
   end
 
   def two_player
     @player1 = ask_name("\e[36m\nPlayer 1\e[0m controls the white pieces. Please enter your name:")
     @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
-  end
-
-  def game_mode
-    input = gets.chomp
-    while %w[1 2].include?(input) == false
-      "\e[31mYou must enter '1' or '2'.\e[0m"
-      input = gets.chomp
-    end
-    input
-  end
-
-  def play
-    play_round until @checkmate
-    display_winner
   end
 
   def ask_name(message, player2 = nil)
@@ -161,46 +121,35 @@ class Game
     puts "\e[31mName must be different than player 1.\e[0m"
   end
 
-  def play_round
-    display_turn_info
-    make_move
-    prepare_next_turn
+  def game_mode
+    input = gets.chomp
+    while %w[1 2].include?(input) == false
+      puts "\e[31mYou must enter '1' or '2'.\e[0m"
+      input = gets.chomp
+    end
+    input
+  end
+end
+
+# Display in game prompts
+module InGameDisplay
+  private
+
+  def display_turn_info
+    @board.display_board
+    puts "\n\e[31mCHECK 😱\e[0m" if @check
+    puts @turn == '' ? "\n\e[36mComputer's move.\e[0m\n" : "\n\e[36m#{@turn}'s move.\e[0m\n"
   end
 
-  def prepare_next_turn
-    @turn = @turn == @player1 ? @player2 : @player1
-    @check = check?
-    @checkmate = checkmate? if @check
-  end
-
-  def make_move
-    ask_move
-    refresh_board
-    double_check
-  end
-
-  def ask_move
+  def ask_player_move
     puts "1) Enter the coordinates of the piece you wish to move or 'save' to save the game in progess:"
-    @piece = player_move('start')
+    @piece = make_move('start')
     @move_from = @piece[:location]
     puts "2) Enter the coordinates to move #{@piece[:label]} to or 'back' to change piece:"
-    @move_to = player_move('end')
+    @move_to = make_move('end')
   end
 
-  def refresh_board(move = @move_to)
-    @board.move_piece(@piece, move)
-    @board.update_moves
-  end
-
-  def double_check
-    return unless check?
-
-    puts "\e[31mInvalid move: #{@piece[:label]} to '#{@current_move}'. You'll be in check. Try again.\e[0m"
-    refresh_board(@move_from)
-    make_move
-  end
-
-  def player_move(type)
+  def make_move(type)
     loop do
       @current_move = gets.chomp
       save_game if @current_move == 'save'
@@ -250,6 +199,7 @@ class Game
     move_coords = convert_coords(@current_move)
 
     return move_coords if @piece[:moves].include?(move_coords)
+
     puts "\e[31mYou cannot move #{@piece[:label]} to #{@current_move}.\e[0m"
   end
 
@@ -259,5 +209,75 @@ class Game
     col = alph.find_index(player_input.chr)
     row = (player_input.reverse.chr.to_i - 8).abs
     [row, col]
+  end
+
+  def display_winner
+    @board.display_board
+    puts "\n\e[31mCHECKMATE 😵\e[0m"
+    @turn = @turn == @player1 ? @player2 : @player1
+    puts "\n\e[36m#{@turn} is the winner!\e[0m"
+  end
+end
+
+# Play a game of chess
+class Game
+  include CheckCheckmate
+  include Database
+  include InGameDisplay
+  include SetupDisplay
+
+  def initialize
+    @checkmate = false
+    introduction
+    new_or_load
+  end
+
+  def play
+    play_round until @checkmate
+    display_winner
+  end
+
+  def play_round
+    display_turn_info
+    puts @turn
+    @turn == '' ? computer_move : player_move
+    prepare_next_turn
+  end
+
+  def prepare_next_turn
+    @turn = @turn == @player1 ? @player2 : @player1
+    @check = check?
+    @checkmate = checkmate? if @check
+  end
+
+  def player_move
+    ask_player_move
+    refresh_board
+    double_check
+  end
+
+  def computer_move
+    @piece = rand_computer_piece
+    @move_to = @piece[:moves].sample
+    refresh_board
+  end
+
+  def rand_computer_piece(moveable = [])
+    computer_pieces = @board.find_defenders(@turn)
+    computer_pieces.each { |piece| moveable.push(piece) unless piece[:moves].empty? }
+    moveable.sample
+  end
+
+  def refresh_board(move = @move_to)
+    @board.move_piece(@piece, move)
+    @board.update_moves
+  end
+
+  def double_check
+    return unless check?
+
+    puts "\e[31mInvalid move: #{@piece[:label]} to '#{@current_move}'. You'll be in check. Try again.\e[0m"
+    refresh_board(@move_from)
+    make_move
   end
 end
