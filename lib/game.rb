@@ -40,11 +40,9 @@ module CheckCheckmate
   def defending?(defender, protectors)
     position = defender[:location]
     defender[:moves].each do |move|
-      @board.move_piece(defender, move)
-      @board.update_moves
+      refresh_board(defender, move)
       protectors.push(defender) unless check?
-      @board.move_piece(defender, position)
-      @board.update_moves
+      refresh_board(defender, position)
     end
     protectors
   end
@@ -68,15 +66,6 @@ module SetupDisplay
   def new_or_load
     puts "Enter \e[33m'1'\e[0m to start a new game of chess or \e[33m'2'\e[0m to continue a saved game."
     game_mode == '1' ? new_game : load_game
-  end
-
-  def new_game
-    puts "\e[36m\nNew Game\e[0m\nEnter \e[33m'1'\e[0m for 1 player game or \e[33m'2'\e[0m for 2 players."
-    game_mode == '1' ? one_player : two_player
-    @turn = @player1
-    @board = Board.new(@player1, @player2)
-    @check = false
-    play
   end
 
   def one_player
@@ -153,7 +142,7 @@ module InGameDisplay
     loop do
       @current_move = gets.chomp
       save_game if @current_move == 'save'
-      ask_move if @current_move == 'back' && type == 'end'
+      ask_player_move if @current_move == 'back' && type == 'end'
       verified_move = type == 'start' ? verify_start_coords : verify_end_coords
       return verified_move if verified_move
     end
@@ -232,6 +221,15 @@ class Game
     new_or_load
   end
 
+  def new_game
+    puts "\e[36m\nNew Game\e[0m\nEnter \e[33m'1'\e[0m for 1 player game or \e[33m'2'\e[0m for 2 players."
+    game_mode == '1' ? one_player : two_player
+    @turn = @player1
+    @board = Board.new(@player1, @player2)
+    @check = false
+    play
+  end
+
   def play
     play_round until @checkmate
     display_winner
@@ -253,13 +251,19 @@ class Game
   def player_move
     ask_player_move
     refresh_board
-    double_check
+    double_check("\e[31mInvalid move: #{@piece[:label]} to '#{@current_move}'. You'll be in check. Try again.\e[0m")
   end
 
   def computer_move
-    @piece = rand_computer_piece
-    @move_to = @piece[:moves].sample
+    rand_computer_move
     refresh_board
+    double_check
+  end
+
+  def rand_computer_move
+    @piece = rand_computer_piece
+    @move_from = @piece[:location]
+    @move_to = @piece[:moves].sample
   end
 
   def rand_computer_piece(moveable = [])
@@ -268,16 +272,16 @@ class Game
     moveable.sample
   end
 
-  def refresh_board(move = @move_to)
-    @board.move_piece(@piece, move)
+  def refresh_board(piece = @piece, move = @move_to)
+    @board.move_piece(piece, move)
     @board.update_moves
   end
 
-  def double_check
+  def double_check(message = nil)
     return unless check?
 
-    puts "\e[31mInvalid move: #{@piece[:label]} to '#{@current_move}'. You'll be in check. Try again.\e[0m"
-    refresh_board(@move_from)
-    make_move
+    puts message unless message.nil?
+    refresh_board(@piece, @move_from)
+    message.nil? ? computer_move : player_move
   end
 end

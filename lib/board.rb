@@ -99,6 +99,8 @@ module PawnMoves
 
   def directly_forward(piece, dist)
     row = piece[:location].first
+    return unless row.between?(0, 7)
+
     col = piece[:location].last
     goal = piece[:label] == '♙' ? [(row + dist), col] : [(row - dist), col]
     return unless @board[goal[0]][goal[1]].nil?
@@ -133,6 +135,8 @@ end
 
 # Controls the chess board
 class Board
+  attr_reader :board
+
   include KingKnightMoves
   include QueenRookBishopMoves
   include PawnMoves
@@ -143,15 +147,16 @@ class Board
   END_ROWS = "┊ ╚═╧═╧═╧═╧═╧═╧═╧═╝\n╰┈┈a┈b┈c┈d┈e┈f┈g┈h╯"
 
   def initialize(player1, player2)
-    @pieces = ChessPieces.new(player1, player2)
-    @board = create_board
+    @board = create_board(player1, player2)
     update_moves
   end
 
-  def create_board(board = [])
-    board.push(@pieces.all[0..7]).push(@pieces.all[8..15])
+  def create_board(player1, player2, board = [])
+    pieces = ChessPieces.new(player1, player2).all
+    board.push(pieces[0..7]).push(pieces[8..15])
     4.times { board.push([nil, nil, nil, nil, nil, nil, nil, nil]) }
-    board.push(@pieces.all[16..23]).push(@pieces.all[24..31])
+    board.push(pieces[16..23]).push(pieces[24..31])
+    board
   end
 
   def display_board
@@ -189,18 +194,19 @@ class Board
     @board[start[0]][start[1]] = nil
     @board[finish[0]][finish[1]] = piece
     @board[finish[0]][finish[1]][:location] = finish
-    @board
   end
 
   def find_piece(coords)
-    @pieces.all.each do |piece|
+    @board.flatten.each do |piece|
+      next if piece.nil?
+
       return piece if piece[:location] == coords
     end
     nil
   end
 
-  def find_attackers(_player, attackers = [])
-    @board.flatten.each { |piece| attackers.push(piece) unless piece.nil? || piece[:owner] == @user }
+  def find_attackers(player, attackers = [])
+    @board.flatten.each { |piece| attackers.push(piece) unless piece.nil? || piece[:owner] == player }
     attackers
   end
 
