@@ -9,7 +9,7 @@ module Display
 
       \e[33m♕ ♔ ♗ ♘ ♖ ♙ Ruby Chess ♟ ♜ ♞ ♝ ♚ ♛\e[0m
 
-      Play classic chess against a friend or a computer.
+      Play classic chess against a friend or the computer.
       Take your opponent's king before they take yours! 👑
 
     HEREDOC
@@ -82,6 +82,7 @@ end
 # Play a game of chess
 class Game
   include CheckCheckmate
+  include Database
   include Display
 
   def initialize
@@ -91,22 +92,46 @@ class Game
   end
 
   def new_or_load
-    puts "Enter '1' to start a new game of chess or '2' to continue a saved game."
-    input = gets.chomp
-    while %w[1 2].include?(input) == false
-      puts error_message[0]
-      input = gets.chomp
-    end
-    input == '1' ? new_game : load_game
+    puts "Enter \e[33m'1'\e[0m to start a new game of chess or \e[33m'2'\e[0m to continue a saved game."
+    game_mode == '1' ? new_game : load_game
   end
 
   def new_game
-    @player1 = ask_name("\e[36mPlayer 1\e[0m controls the white pieces. Please enter your name:")
-    @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
+    puts "\e[36m\nNew Game\e[0m\nEnter \e[33m'1'\e[0m for 1 player game or \e[33m'2'\e[0m for 2 players."
+    game_mode == '1' ? one_player : two_player
     @turn = @player1
     @board = Board.new(@player1, @player2)
     @check = false
     play
+  end
+
+  def one_player
+    puts "\e[36m\nSingle Player\e[0m\nEnter \e[33m'1'\e[0m to play as white or \e[33m'2'\e[0m to play as black."
+    game_mode == '1' ? player_white : player_black
+  end
+
+  def player_white
+    @player1 = ask_name("You control the white pieces. Please enter your name:")
+    @player2 = 'COMPUTER'
+  end
+
+  def player_black
+    @player2 = ask_name("You control the black pieces. Please enter your name:")
+    @player1 = 'COMPUTER'
+  end
+
+  def two_player
+    @player1 = ask_name("\e[36m\nPlayer 1\e[0m controls the white pieces. Please enter your name:")
+    @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
+  end
+
+  def game_mode
+    input = gets.chomp
+    while %w[1 2].include?(input) == false
+      "\e[31mYou must enter '1' or '2'.\e[0m"
+      input = gets.chomp
+    end
+    input
   end
 
   def play
@@ -155,7 +180,7 @@ class Game
   end
 
   def ask_move
-    puts '1) Enter the column-row coordinates of the piece you wish to move:'
+    puts "1) Enter the coordinates of the piece you wish to move or 'save' to save the game in progess:"
     @piece = player_move('start')
     @move_from = @piece[:location]
     puts "2) Enter the coordinates to move #{@piece[:label]} to or 'back' to change piece:"
@@ -178,6 +203,7 @@ class Game
   def player_move(type)
     loop do
       @current_move = gets.chomp
+      save_game if @current_move == 'save'
       ask_move if @current_move == 'back' && type == 'end'
       verified_move = type == 'start' ? verify_start_coords : verify_end_coords
       return verified_move if verified_move
@@ -198,24 +224,32 @@ class Game
     return nil unless valid_coords
 
     piece = search_board
-    return piece unless piece.nil? || piece[:moves].empty?
-
-    puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
+    can_move?(piece) unless piece.nil?
   end
 
   def search_board
     piece = @board.find_piece(convert_coords(@current_move))
-    return piece if !piece.nil? && piece[:owner] == @turn
+    return piece unless piece.nil? || piece[:owner] != @turn
 
     puts "\e[31mYou do not have a chess piece at #{@current_move}.\e[0m"
+  end
+
+  def can_move?(piece)
+    return piece unless piece[:moves].empty?
+
+    puts "\e[31mYour #{piece[:label]} cannot move.\e[0m"
   end
 
   def verify_end_coords
     return nil unless valid_coords
 
-    end_coords = convert_coords(@current_move)
-    return end_coords if @piece[:moves].include?(end_coords)
+    valid_target?
+  end
 
+  def valid_target?
+    move_coords = convert_coords(@current_move)
+
+    return move_coords if @piece[:moves].include?(move_coords)
     puts "\e[31mYou cannot move #{@piece[:label]} to #{@current_move}.\e[0m"
   end
 
