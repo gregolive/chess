@@ -60,8 +60,7 @@ module SetupDisplay
       Play classic chess against a friend or the computer.
       Take your opponent's king before they take yours! 👑
 
-      Start a game by entering a number from the list below.
-
+      Start a game by entering a number from the list:
       \e[33m'1'\e[0m Load a saved game
       \e[33m'2'\e[0m Start a new 2 player game
       \e[33m'3'\e[0m Start a new 1 player game (as white)
@@ -94,16 +93,19 @@ module SetupDisplay
   def two_player
     @player1 = ask_name("\e[36m\nPlayer 1\e[0m controls the white pieces. Please enter your name:")
     @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
+    new_game
   end
 
   def player_white
     @player1 = ask_name("\nYou control the white pieces. Please enter your name:")
     @player2 = ''
+    new_game
   end
 
   def player_black
     @player2 = ask_name("\nYou control the black pieces. Please enter your name:")
     @player1 = ''
+    new_game
   end
 
   def ask_name(message, player2 = nil)
@@ -136,22 +138,23 @@ module InGameDisplay
   def display_turn_info
     @board.display_board
     puts "\n\e[31mCHECK 😱\e[0m" if @check
-    puts @turn == '' ? "\n\e[36mComputer's move.\e[0m\n" : "\n\e[36m#{@turn}'s move.\e[0m\n"
+    puts @turn == '' ? "\n\e[36mComputer's move.\e[0m\n" : "\n\e[36m#{@turn}'s move.\e[0m\nEnter \e[33m'S'\e[0m to save the game at anytime or \e[33m'Q'\e[0m to quit."
   end
 
   def ask_player_move
-    puts "1) Enter the coordinates of the piece you wish to move or 'save' to save the game in progess:"
+    puts '1) Choose a piece to move by entering its coordinates:'
     @piece = make_move('start')
     @move_from = @piece[:location]
-    puts "2) Enter the coordinates to move #{@piece[:label]} to or 'back' to change piece:"
+    puts "2) Enter the coordinates to move #{@piece[:label]} to or 'B' to change piece:"
     @move_to = make_move('end')
   end
 
   def make_move(type)
     loop do
       @current_move = gets.chomp
-      save_game if @current_move == 'save'
-      ask_player_move if @current_move == 'back' && type == 'end'
+      exit if @current_move == 'Q'
+      save_game if @current_move == 'S'
+      ask_player_move if @current_move == 'B' && type == 'end'
       verified_move = type == 'start' ? verify_start_coords : verify_end_coords
       return verified_move if verified_move
     end
@@ -231,8 +234,6 @@ class Game
   end
 
   def new_game
-    puts "\e[36m\nNew Game\e[0m\nEnter \e[33m'1'\e[0m for 1 player game or \e[33m'2'\e[0m for 2 players."
-    game_mode == '1' ? one_player : two_player
     @turn = @player1
     @board = Board.new(@player1, @player2)
     @check = false
@@ -246,7 +247,6 @@ class Game
 
   def play_round
     display_turn_info
-    puts @turn
     @turn == '' ? computer_move : player_move
     prepare_next_turn
   end
