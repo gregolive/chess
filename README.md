@@ -21,8 +21,8 @@ In game:
 - Methods included in the Board class calculate the possible moves for each piece on the board, based on the type of piece, the piece location on the board and interference by other pieces.
 - The board is displayed prior to each turn, along with a message stating whose turn it is and a warning if the player is in check.
 - Players take turns making moves by first entering the coordinates of the piece they would like to move, followed by the coordinates they want to move the piece to. Checks are completed to ensure: 1) players enter proper board coordinates 2) players are attempting to move their own piece 3) players are not attempting to select a piece that cannot move in its current position 4) players make a move that is legal for the selected piece type 5) when in check, players are only making a move that gets them out of check
-- If a player enters a piece to move but change their mind, they can enter 'back' instead of the target coordinates and select a new piece.
-- A player can save the game state at anytime by entering 'save' at the start of their turn. The player is then prompted to enter a save file name and the program stops. 
+- If a player enters a piece to move but change their mind, they can enter 'B' instead of the target coordinates and select a new piece.
+- A player can quit the game at anytime by entering 'Q' or save the game state by entering 'S'. When saving the player is prompted to enter a save file name and the program subsequently stops. 
 
 
 ## Reflection
