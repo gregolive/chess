@@ -60,32 +60,50 @@ module SetupDisplay
       Play classic chess against a friend or the computer.
       Take your opponent's king before they take yours! 👑
 
+      Start a game by entering a number from the list below.
+
+      \e[33m'1'\e[0m Load a saved game
+      \e[33m'2'\e[0m Start a new 2 player game
+      \e[33m'3'\e[0m Start a new 1 player game (as white)
+      \e[33m'4'\e[0m Start a new 1 player game (as black)
     HEREDOC
   end
 
-  def new_or_load
-    puts "Enter \e[33m'1'\e[0m to start a new game of chess or \e[33m'2'\e[0m to continue a saved game."
-    game_mode == '1' ? new_game : load_game
+  def game_mode
+    input = gets.chomp
+    while %w[1 2 3 4].include?(input) == false
+      puts "\e[31mYou must enter a valid number from the list.\e[0m"
+      input = gets.chomp
+    end
+    input
   end
 
-  def one_player
-    puts "\e[36m\nSingle Player\e[0m\nEnter \e[33m'1'\e[0m to play as white or \e[33m'2'\e[0m to play as black."
-    game_mode == '1' ? player_white : player_black
-  end
-
-  def player_white
-    @player1 = ask_name('You control the white pieces. Please enter your name:')
-    @player2 = ''
-  end
-
-  def player_black
-    @player2 = ask_name('You control the black pieces. Please enter your name:')
-    @player1 = ''
+  def setup
+    case game_mode
+    when '1'
+      load_game
+    when '2'
+      two_player
+    when '3'
+      player_white
+    when '4'
+      player_black
+    end
   end
 
   def two_player
     @player1 = ask_name("\e[36m\nPlayer 1\e[0m controls the white pieces. Please enter your name:")
     @player2 = ask_name("\e[36mPlayer 2\e[0m controls the black pieces. Please enter your name:", true)
+  end
+
+  def player_white
+    @player1 = ask_name("\nYou control the white pieces. Please enter your name:")
+    @player2 = ''
+  end
+
+  def player_black
+    @player2 = ask_name("\nYou control the black pieces. Please enter your name:")
+    @player1 = ''
   end
 
   def ask_name(message, player2 = nil)
@@ -108,15 +126,6 @@ module SetupDisplay
     return input unless input == @player1
 
     puts "\e[31mName must be different than player 1.\e[0m"
-  end
-
-  def game_mode
-    input = gets.chomp
-    while %w[1 2].include?(input) == false
-      puts "\e[31mYou must enter '1' or '2'.\e[0m"
-      input = gets.chomp
-    end
-    input
   end
 end
 
@@ -218,7 +227,7 @@ class Game
   def initialize
     @checkmate = false
     introduction
-    new_or_load
+    setup
   end
 
   def new_game
